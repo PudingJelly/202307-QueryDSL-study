@@ -4,6 +4,7 @@ import com.example.study.entity.Member;
 import com.example.study.entity.QMember;
 import com.example.study.entity.Team;
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -335,7 +336,7 @@ class MemberRepositoryTest {
         //given
 
         //when
-        List<Tuple> result = factory.select(member, team)
+        List<Tuple> result = factory.select(member, team).distinct()
                 .from(member)
                 .leftJoin(member.team, team)
                 .on(team.name.eq("teamA"))
@@ -343,6 +344,65 @@ class MemberRepositoryTest {
         //then
         System.out.println("\n\n\n");
         result.forEach(tuple -> System.out.println("tuple = " + tuple));
+        System.out.println("\n\n\n");
+    }
+
+    @Test
+    @DisplayName("sub query 사용하기(나이가 가장 많은 회원을 조회)")
+    void subQueryTest()
+    {
+        //given
+        // 같은 테이블에서 서브쿼리를 적용하려면 별도로 QClass의 객체를 생성해야 합니다.
+        QMember memberSub = new QMember("memberSub");
+
+        //when
+        List<Member> result = factory.selectFrom(member)
+                .where(member.age.eq(
+                        JPAExpressions // 서브쿼리를 사용할 수 있게 해주는 클래스
+                                .select(memberSub.age.max())
+                                .from(memberSub)
+                )).fetch();
+
+        //then
+        System.out.println("\n\n\n");
+        result.forEach(System.out::println);
+        System.out.println("\n\n\n");
+    }
+
+    @Test
+    @DisplayName("나이가 평균 나이 이상인 회원을 조회")
+    void subQueryGoe()
+    {
+        //given
+        QMember m2 = new QMember("m2");
+        //when
+        //JPAExpressions는 from절을 제외하고, select와 where절에서 사용이 가능
+        List<Member> result = factory.selectFrom(member)
+                .where(member.age.goe(
+                        JPAExpressions
+                                .select(m2.age.avg())
+                                .from(m2)
+                )).fetch();
+        //then
+        assertEquals(result.size(), 5);
+    }
+
+    @Test
+    @DisplayName("동적 SQL 테스트")
+    void dynamicQueryTest()
+    {
+        //given
+        String name = null;
+        int age = 60;
+
+        //when
+        List<Member> result = memberRepository.findUser(name, age);
+
+        //then
+        assertEquals(result.size(), 3);
+
+        System.out.println("\n\n\n");
+        result.forEach(System.out::println);
         System.out.println("\n\n\n");
     }
 

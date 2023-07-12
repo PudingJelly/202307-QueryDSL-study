@@ -7,5 +7,6 @@ import java.util.List;
 public interface MemberRopositoryCustom {
 
     List <Member> findByName(String name);
+    List<Member> findUser(String namePram, Integer ageParam);
 
 }
